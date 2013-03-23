@@ -10,9 +10,9 @@ using System.Windows;
 [assembly: AssemblyTitle("BatchExecute")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("flaze")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("BatchExecute")]
-[assembly: AssemblyCopyright("")]
+[assembly: AssemblyCopyright("flaze")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
