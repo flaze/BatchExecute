@@ -1,5 +1,8 @@
 BatchExecute
 ============
-Binary downloads available here http://dropcanvas.com/lyg00
-**v1.1** http://dropcanvas.com/lyg00/1
-**v1.0** http://dropcanvas.com/lyg00/2
+
+Download
+------------
+**v1.1** - http://dropcanvas.com/lyg00/1 - *Fixed DGIndex default arguments and added Comskip to defaults*
+
+**v1.0** - http://dropcanvas.com/lyg00/2
