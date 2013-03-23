@@ -1,0 +1,18 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="BatchExecute.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Extensions" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ts mpg</Value>
+    </Setting>
+    <Setting Name="WindowMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Normal</Value>
+    </Setting>
+    <Setting Name="Programs" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DGIndex||-i "{DirectoryName}\{Name}.{Extension}" -o "{DirectoryName}\{Name}" -hide -exit
+DGIndexNV||-i "{DirectoryName}\{Name}.{Extension}" -o "{DirectoryName}\{Name}.dgi" -e -h -a
+DGAVCIndexDI||-i "{DirectoryName}\{Name}.{Extension}" -o "{DirectoryName}\{Name}.dgi" -e -h -a
+Comskip||"{DirectoryName}\{Name}.{Extension}"</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
