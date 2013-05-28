@@ -1,16 +1,24 @@
 ﻿// From: http://mo.notono.us/2008/07/c-stringinject-format-strings-by-key.html
 
 using System;
+using System.Linq;
+using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Globalization;
 using System.ComponentModel;
+using System.Collections.Generic;
+using System.Windows;
 
 [assembly: CLSCompliant(true)]
 namespace BatchExecute
 {
     public static class StringInjectExtension
     {
+        public const string AttributeRegex = "{{({0})(?:}}|(?::(.[^}}]*)}}))";
+        public const string FunctionSignatureRegex = "{(?<name>.*?)\\((?<arguments>.*?)\\)}";
+        public const string FunctionArgumentsRegex = "(?:(?<number>\\d+)|(?:\\\"(?<string>[a-z0-9\\s]*)\\\"))\\s?,?\\s?";
+
         /// <summary>
         /// Extension method that replaces keys in a string with the values of matching object properties.
         /// <remarks>Uses <see cref="String.Format()"/> internally; custom formats should match those used for that method.</remarks>
@@ -44,15 +52,13 @@ namespace BatchExecute
         /// <returns>A version of the formatString string with hastable keys replaced by (formatted) key values.</returns>
         public static string Inject(this string formatString, Hashtable attributes)
         {
-            string result = formatString;
+            var result = formatString;
             if (attributes == null || formatString == null)
                 return result;
 
-            foreach (string attributeKey in attributes.Keys)
-            {
-                result = result.InjectSingleValue(attributeKey, attributes[attributeKey]);
-            }
-            return result;
+            return attributes.Keys.Cast<string>()
+                .Aggregate(result, (current, attributeKey) =>
+                    current.InjectSingleValue(attributeKey, attributes[attributeKey]));
         }
 
         /// <summary>
@@ -64,15 +70,15 @@ namespace BatchExecute
         /// <returns>The input string with any instances of the key replaced with the replacement value</returns>
         public static string InjectSingleValue(this string formatString, string key, object replacementValue)
         {
-            string result = formatString;
+            var result = formatString;
             //regex replacement of key with value, where the generic key format is:
             //Regex foo = new Regex("{(foo)(?:}|(?::(.[^}]*)}))");
-            Regex attributeRegex = new Regex("{(" + key + ")(?:}|(?::(.[^}]*)}))");  //for key = foo, matches {foo} and {foo:SomeFormat}
+            var attributeRegex = new Regex(string.Format(AttributeRegex, key));  //for key = foo, matches {foo} and {foo:SomeFormat}
 
             //loop through matches, since each key may be used more than once (and with a different format string)
             foreach (Match m in attributeRegex.Matches(formatString))
             {
-                string replacement = m.ToString();
+                var replacement = m.ToString();
                 if (m.Groups[2].Length > 0) //matched {foo:SomeFormat}
                 {
                     //do a double string.Format - first to build the proper format string, and then to format the replacement value
@@ -90,6 +96,44 @@ namespace BatchExecute
 
         }
 
+        public static string[] InjectFunctions(this string formatString,
+            Func<string, object[], IEnumerable<string>> functionHandler)
+        {
+            var results = new List<string>();
+            var functionSignatureRegex = new Regex(FunctionSignatureRegex);
+            var functionArgumentsRegex = new Regex(FunctionArgumentsRegex);
+            var functionSignatureMatches = functionSignatureRegex.Matches(formatString);
+
+            if (functionSignatureMatches.Count == 0)
+                return new[] {formatString};
+
+            foreach (Match m in functionSignatureMatches)
+            {
+                if (!m.Success) continue;
+
+                var name = m.Groups["name"].Value;
+                var arguments = new List<object>();
+                    
+                foreach (var am in functionArgumentsRegex.Matches(m.Groups["arguments"].Value)
+                                                         .Cast<Match>().Where(am => am.Success))
+                {
+                    if (am.Groups["number"].Success)
+                        arguments.Add(int.Parse(am.Groups["number"].Value));
+                    else if (am.Groups["string"].Success)
+                        arguments.Add(am.Groups["string"].Value);
+                }
+
+                results.AddRange(functionHandler(name, arguments.ToArray())
+                                         .Select(r => formatString.ReplaceAt(m.Index, m.Length, r)));
+            }
+
+            return results.ToArray();
+        }
+
+        private static string ReplaceAt(this string s, int index, int length, string value)
+        {
+            return s.Substring(0, index) + value + s.Substring(index + length, s.Length - index - length);
+        }
 
         /// <summary>
         /// Creates a HashTable based on current object state.
@@ -99,16 +143,16 @@ namespace BatchExecute
         /// <returns>A <see cref="Hashtable"/> containing the object instance's property names and their values</returns>
         private static Hashtable GetPropertyHash(object properties)
         {
-            Hashtable values = null;
-            if (properties != null)
+            if (properties == null) return null;
+
+            var values = new Hashtable();
+            var props = TypeDescriptor.GetProperties(properties);
+
+            foreach (PropertyDescriptor prop in props)
             {
-                values = new Hashtable();
-                PropertyDescriptorCollection props = TypeDescriptor.GetProperties(properties);
-                foreach (PropertyDescriptor prop in props)
-                {
-                    values.Add(prop.Name, prop.GetValue(properties));
-                }
+                values.Add(prop.Name, prop.GetValue(properties));
             }
+
             return values;
         }
 

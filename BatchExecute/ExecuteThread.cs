@@ -41,7 +41,7 @@ namespace BatchExecute
             _windowMode = windowMode;
 
             IsRunning = true;
-            _thread = new Thread(new ThreadStart(Work));
+            _thread = new Thread(Work);
             _thread.Start();
         }
 
@@ -52,14 +52,14 @@ namespace BatchExecute
 
         private void Work()
         {
-            for (int i = 0; i < _files.Count; i++)
+            for (var i = 0; i < _files.Count; i++)
             {
-                DFile file = _files[i];
-                string arguments = _program.Arguments.Inject(file);
+                var file = _files[i];
+                var arguments = ArgumentFormatter.Format(_program.Arguments, file).First(); // TODO: Multiple arguments
 
                 Debug.WriteLine("EXECUTE: " + _program.Filename + " " + arguments);
 
-                ProcessStartInfo startInfo = new ProcessStartInfo(_program.Filename, arguments);
+                var startInfo = new ProcessStartInfo(_program.Filename, arguments);
 
                 if (_windowMode == "Hidden")
                 {
@@ -71,7 +71,7 @@ namespace BatchExecute
                     startInfo.WindowStyle = ProcessWindowStyle.Minimized;
                 }
 
-                Process p = Process.Start(startInfo);
+                var p = Process.Start(startInfo);
 
                 p.WaitForExit();
 

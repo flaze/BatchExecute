@@ -13,7 +13,7 @@ namespace BatchExecute
 
         public FileInfo FileInfo { get; set; }
         
-        public string Path
+        public virtual string Path
         {
             get
             {
@@ -21,9 +21,10 @@ namespace BatchExecute
                     return FileInfo.FullName;
                 return "";
             }
+            set { throw new NotSupportedException(); }
         }
 
-        public string FullName
+        public virtual string FullName
         {
             get
             {
@@ -31,9 +32,10 @@ namespace BatchExecute
                     return FileInfo.FullName;
                 return "";
             }
+            set { throw new NotSupportedException(); }
         }
 
-        public string DirectoryName
+        public virtual string DirectoryName
         {
             get
             {
@@ -41,9 +43,10 @@ namespace BatchExecute
                     return FileInfo.DirectoryName;
                 return "";
             }
+            set { throw new NotSupportedException(); }
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -51,9 +54,10 @@ namespace BatchExecute
                     return FileInfo.Name.Substring(0, FileInfo.Name.Length - FileInfo.Extension.Length);
                 return "";
             }
+            set { throw new NotSupportedException(); }
         }
 
-        public string Extension
+        public virtual string Extension
         {
             get
             {
@@ -61,6 +65,7 @@ namespace BatchExecute
                     return FileInfo.Extension.Substring(1);
                 return "";
             }
+            set { throw new NotSupportedException(); }
         }
 
         public string State
@@ -71,6 +76,11 @@ namespace BatchExecute
                 _state = value;
                 FirePropertyChanged("State");
             }
+        }
+
+        public DFile()
+            : this(null)
+        {
         }
 
         public DFile(FileInfo fileInfo)
