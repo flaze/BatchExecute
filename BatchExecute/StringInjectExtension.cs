@@ -107,6 +107,8 @@ namespace BatchExecute
             if (functionSignatureMatches.Count == 0)
                 return new[] {formatString};
 
+            var functions = new List<List<DFunctionResult>>();
+
             foreach (Match m in functionSignatureMatches)
             {
                 if (!m.Success) continue;
@@ -123,12 +125,41 @@ namespace BatchExecute
                         arguments.Add(am.Groups["string"].Value);
                 }
 
-                results.AddRange(functionHandler(name, arguments.ToArray())
-                                         .Select(r => formatString.ReplaceAt(m.Index, m.Length, r)));
+                functions.Add(functionHandler(name, arguments.ToArray())
+                                      .Select(r => new DFunctionResult
+                                      {
+                                              Index = m.Index, // TODO: backwards compiler compatability
+                                              Length = m.Length,
+                                              Value = r
+                                      }).ToList());
             }
 
-            return results.ToArray();
+            var steps = new List<List<DFunctionResult>>();
+
+            for (var f = 0; f < functions.Count; f++)
+            {
+                for (var s = 0; s < functions[f].Count; s++)
+                {
+                    if(s >= steps.Count)
+                        steps.Add(new List<DFunctionResult>());
+                    steps[s].Add(functions[f][s]);
+                }
+            }
+
+            return (
+                from step in steps
+                let stepResult = new DStep{ Offset = 0, Result = (string)formatString.Clone() }
+                select step.Aggregate(
+                    stepResult,
+                    (current, fr) =>
+                    {
+                        current.Result = current.Result.ReplaceAt(fr.Index - current.Offset, fr.Length, fr.Value);
+                        current.Offset += fr.Length - fr.Value.Length;
+                        return current;
+                    })
+            ).Select(s => s.Result).ToArray();
         }
+
 
         private static string ReplaceAt(this string s, int index, int length, string value)
         {

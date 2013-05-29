@@ -88,9 +88,10 @@ namespace BatchExecute
                 if (parameters.Length != parameterTypes.Length && !hasParamsParameter)
                     return false;
 
-                return !parameterTypes
-                    .Where((t, i) => parameters[i].ParameterType != t && !parameters[i].IsParamsParameter())
-                    .Any();
+                return !parameterTypes.Where((t, i) =>
+                                             parameters[Math.Min(parameters.Length - 1, i)].ParameterType != t &&
+                                             !parameters[Math.Min(parameters.Length - 1, i)].IsParamsParameter())
+                                      .Any();
             });
         }
 

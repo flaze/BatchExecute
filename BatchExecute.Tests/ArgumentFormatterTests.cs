@@ -2,16 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
+using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
 
 namespace BatchExecute.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class ArgumentFormatterTests
     {
-        private readonly TestFile _testFile;
+        private TestFile _testFile;
 
-        public ArgumentFormatterTests()
+        [SetUp]
+        public void Setup()
         {
             _testFile = new TestFile
             {
@@ -21,7 +23,7 @@ namespace BatchExecute.Tests
             };
         }
 
-        [TestMethod]
+        [Test]
         public void Basic()
         {
             ArgumentFormatter.Format(
@@ -34,7 +36,7 @@ namespace BatchExecute.Tests
                     "-i \"{DirectoryName}\\{Name}.{Extension}\" -o \"{DirectoryName}\\{Name}.dgi\" -e -h -a", _testFile).First());
         }
 
-        [TestMethod]
+        [Test]
         public void Number()
         {
             FormatRangeShouldBe(ArgumentFormatter.Number(6, 2, 0), 0, 2, 4, 6, 8, 10);
@@ -53,9 +55,11 @@ namespace BatchExecute.Tests
             FormatRangeShouldBe(ArgumentFormatter.Format(">{number(4, 3, 3)}<", _testFile), ">3<", ">6<", ">9<", ">12<");
 
             FormatRangeShouldBe(ArgumentFormatter.Format(">{number(5, 5, 5)}<", _testFile), ">5<", ">10<", ">15<", ">20<", ">25<");
+
+            FormatRangeShouldBe(ArgumentFormatter.Format(">{number(4, 1, 1, 1)}<", _testFile), ">1<", ">1<", ">2<", ">2<");
         }
 
-        [TestMethod]
+        [Test]
         public void Range()
         {
             FormatRangeShouldBe(ArgumentFormatter.Format(">{range(3, 280, 14)}<", _testFile), ">0-13<", ">280-293<", ">560-573<");
@@ -63,6 +67,22 @@ namespace BatchExecute.Tests
             FormatRangeShouldBe(ArgumentFormatter.Format(">{range(3, 280, 14, 2)}<", _testFile), ">2-15<", ">282-295<", ">562-575<");
 
             FormatRangeShouldBe(ArgumentFormatter.Format(">{range(5, 2, 3, 2)}<", _testFile), ">2-4<", ">4-6<", ">6-8<", ">8-10<", ">10-12<");
+        }
+
+        [Test]
+        public void Multi()
+        {
+            // S1
+            FormatRangeShouldBe(ArgumentFormatter.Format("mplayer2 -nocache -dvd-device <filename> " +
+                                                         "dvdnav://{number(2, 1, 1, 1)} " +
+                                                         "-chapter {range(2, 2, 2, 1)} " +
+                                                         "-dumpstream -dumpfile {number(2, 1, 1)}.vob", _testFile),
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 1-2 -dumpstream -dumpfile 1.vob",
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 3-4 -dumpstream -dumpfile 2.vob");
+
+
+            var x = 0;
+            x.Should().Be(0);
         }
 
         private void FormatRangeShouldBe<T>(IEnumerable<T> results, params T[] items)
