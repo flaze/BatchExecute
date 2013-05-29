@@ -17,7 +17,7 @@ namespace BatchExecute
     {
         public const string AttributeRegex = "{{({0})(?:}}|(?::(.[^}}]*)}}))";
         public const string FunctionSignatureRegex = "{(?<name>.*?)\\((?<arguments>.*?)\\)}";
-        public const string FunctionArgumentsRegex = "(?:(?<number>\\d+)|(?:\\\"(?<string>[a-z0-9\\s]*)\\\"))\\s?,?\\s?";
+        public const string FunctionArgumentsRegex = "(?:(?<number>\\d+)|(?:\\\"(?<string>[a-z0-9\\s]*)\\\")|(?<boolean>true|false))\\s?,?\\s?";
 
         /// <summary>
         /// Extension method that replaces keys in a string with the values of matching object properties.
@@ -97,7 +97,7 @@ namespace BatchExecute
         }
 
         public static string[] InjectFunctions(this string formatString,
-            Func<string, object[], IEnumerable<string>> functionHandler)
+                                               Func<string, object[], IEnumerable<string>> functionHandler)
         {
             var results = new List<string>();
             var functionSignatureRegex = new Regex(FunctionSignatureRegex);
@@ -115,49 +115,80 @@ namespace BatchExecute
 
                 var name = m.Groups["name"].Value;
                 var arguments = new List<object>();
-                    
+
                 foreach (var am in functionArgumentsRegex.Matches(m.Groups["arguments"].Value)
                                                          .Cast<Match>().Where(am => am.Success))
                 {
                     if (am.Groups["number"].Success)
                         arguments.Add(int.Parse(am.Groups["number"].Value));
+
                     else if (am.Groups["string"].Success)
                         arguments.Add(am.Groups["string"].Value);
+
+                    else if (am.Groups["boolean"].Success)
+                        arguments.Add(bool.Parse(am.Groups["boolean"].Value.ToLower()));
                 }
 
                 functions.Add(functionHandler(name, arguments.ToArray())
-                                      .Select(r => new DFunctionResult
-                                      {
-                                              Index = m.Index, // TODO: backwards compiler compatability
-                                              Length = m.Length,
-                                              Value = r
-                                      }).ToList());
+                                  .Select(r => new DFunctionResult
+                                  {
+                                      Index = m.Index, // TODO: backwards compiler compatability
+                                      Length = m.Length,
+                                      Value = r
+                                  }).ToList());
             }
 
-            var steps = new List<List<DFunctionResult>>();
+            var steps = new List<DFunctionResult[]>();
 
+            // Fill steps with initial data
             for (var f = 0; f < functions.Count; f++)
             {
                 for (var s = 0; s < functions[f].Count; s++)
                 {
-                    if(s >= steps.Count)
-                        steps.Add(new List<DFunctionResult>());
-                    steps[s].Add(functions[f][s]);
+                    if (s >= steps.Count)
+                        steps.Add(new DFunctionResult[functions.Count]);
+                    steps[s][f] = functions[f][s];
+                }
+            }
+
+            // Add repeat data
+            var repeatStepStart = -1;
+            var functionStepLengths = new int[steps[0].Length];
+
+            for (var s = 0; s < steps.Count; s++)
+            {
+                for (var f = 0; f < steps[s].Length; f++)
+                {
+                    if (steps[s][f] == null)
+                    {
+                        if (repeatStepStart == -1)
+                            repeatStepStart = s;
+
+                        var rs = (s + 1).Repeat(functionStepLengths[f]) - 1;
+
+                        steps[s][f] = steps[rs][f];
+                    }
+                    else
+                    {
+                        if (repeatStepStart == -1)
+                            functionStepLengths[f] += 1;
+                    }
                 }
             }
 
             return (
-                from step in steps
-                let stepResult = new DStep{ Offset = 0, Result = (string)formatString.Clone() }
-                select step.Aggregate(
-                    stepResult,
-                    (current, fr) =>
-                    {
-                        current.Result = current.Result.ReplaceAt(fr.Index - current.Offset, fr.Length, fr.Value);
-                        current.Offset += fr.Length - fr.Value.Length;
-                        return current;
-                    })
-            ).Select(s => s.Result).ToArray();
+                       from step in steps
+                       let stepResult = new DStep {Offset = 0, Result = (string) formatString.Clone()}
+                       select step.Aggregate(
+                                             stepResult,
+                                             (current, fr) =>
+                                             {
+                                                 current.Result = current.Result.ReplaceAt(fr.Index - current.Offset,
+                                                                                           fr.Length, fr.Value);
+                                                 current.Offset += fr.Length - fr.Value.Length;
+                                                 return current;
+                                             })
+                   ).Select(s => s.Result).ToArray();
         }
 
 

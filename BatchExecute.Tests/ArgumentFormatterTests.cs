@@ -64,9 +64,15 @@ namespace BatchExecute.Tests
         {
             FormatRangeShouldBe(ArgumentFormatter.Format(">{range(3, 280, 14)}<", _testFile), ">0-13<", ">280-293<", ">560-573<");
 
-            FormatRangeShouldBe(ArgumentFormatter.Format(">{range(3, 280, 14, 2)}<", _testFile), ">2-15<", ">282-295<", ">562-575<");
+            FormatRangeShouldBe(ArgumentFormatter.Format(">{range(3, 280, 2, 14)}<", _testFile), ">2-15<", ">282-295<", ">562-575<");
 
-            FormatRangeShouldBe(ArgumentFormatter.Format(">{range(5, 2, 3, 2)}<", _testFile), ">2-4<", ">4-6<", ">6-8<", ">8-10<", ">10-12<");
+            FormatRangeShouldBe(ArgumentFormatter.Format(">{range(5, 2, 2, 3)}<", _testFile), ">2-4<", ">4-6<", ">6-8<", ">8-10<", ">10-12<");
+        }
+
+        [Test]
+        public void RangeLength()
+        {
+            FormatRangeShouldBe(ArgumentFormatter.RangeLength(2, 2, 1, true, 1, 2), "1", "3-4");
         }
 
         [Test]
@@ -75,10 +81,29 @@ namespace BatchExecute.Tests
             // S1
             FormatRangeShouldBe(ArgumentFormatter.Format("mplayer2 -nocache -dvd-device <filename> " +
                                                          "dvdnav://{number(2, 1, 1, 1)} " +
-                                                         "-chapter {range(2, 2, 2, 1)} " +
+                                                         "-chapter {range(2, 2, 1, 2)} " +
                                                          "-dumpstream -dumpfile {number(2, 1, 1)}.vob", _testFile),
                                 "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 1-2 -dumpstream -dumpfile 1.vob",
                                 "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 3-4 -dumpstream -dumpfile 2.vob");
+
+            // S2
+            FormatRangeShouldBe(ArgumentFormatter.Format("mplayer2 -nocache -dvd-device <filename> " +
+                                                         "dvdnav://{number(2, 1, 1, 1)} " +
+                                                         "-chapter {range(2, 3, 1, 2)} " +
+                                                         "-dumpstream -dumpfile {number(2, 1, 1)}.vob", _testFile),
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 1-2 -dumpstream -dumpfile 1.vob",
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 4-5 -dumpstream -dumpfile 2.vob");
+
+            // S3
+            var r = ArgumentFormatter.Format("mplayer2 -nocache -dvd-device <filename> " +
+                                             "dvdnav://{number(4, 1, 1, 1)} " +
+                                             "-chapter {rangelength(2, 2, 1, true, 1, 2)} " +
+                                             "-dumpstream -dumpfile {number(4, 1, 1)}.vob", _testFile);
+            FormatRangeShouldBe(r,
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 1 -dumpstream -dumpfile 1.vob",
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://1 -chapter 3-4 -dumpstream -dumpfile 2.vob",
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://2 -chapter 1 -dumpstream -dumpfile 3.vob",
+                                "mplayer2 -nocache -dvd-device <filename> dvdnav://2 -chapter 3-4 -dumpstream -dumpfile 4.vob");
 
 
             var x = 0;

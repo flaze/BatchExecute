@@ -54,6 +54,7 @@
     <Compile Include="DFunctionResult.cs" />
     <Compile Include="DStep.cs" />
     <Compile Include="ExecuteThread.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="StringInjectExtension.cs" />
     <Page Include="MainWindow.xaml">

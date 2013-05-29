@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Security.Policy;
 
 namespace BatchExecute
 {
@@ -49,13 +50,29 @@ namespace BatchExecute
 
         public static IEnumerable<string> Range(int numSteps, int every, int length)
         {
-            return Range(numSteps, every, length, 0);
+            return Range(numSteps, every, 0, length);
         }
 
-        public static IEnumerable<string> Range(int numSteps, int every, int length, int offset)
+        public static IEnumerable<string> Range(int numSteps, int every, int offset, int length)
+        {
+            return Number(numSteps, every, offset).Select(n => n + "-" + (n + length - 1));
+        }
+
+        public static IEnumerable<string> RangeLength(int numSteps, int every, int offset, params int[] lengths)
+        {
+            return RangeLength(numSteps, every, offset, false, lengths);
+        }
+
+        public static IEnumerable<string> RangeLength(int numSteps, int every, int offset, bool collapse, params int[] lengths)
         {
             return Number(numSteps, every, offset)
-                    .Select(n => n + "-" + (n + length - 1));
+                .Select((s, i) =>
+                {
+                    var e = s + lengths[(i + 1).Repeat(lengths.Length) - 1] - 1;
+                    if (collapse && s == e)
+                        return s.ToString();
+                    return s + "-" + e;
+                });
         }
 
         public static IEnumerable<int> Number(int numSteps, int stepSize, params int[] offsets)
@@ -88,11 +105,21 @@ namespace BatchExecute
                 if (parameters.Length != parameterTypes.Length && !hasParamsParameter)
                     return false;
 
-                return !parameterTypes.Where((t, i) =>
-                                             parameters[Math.Min(parameters.Length - 1, i)].ParameterType != t &&
-                                             !parameters[Math.Min(parameters.Length - 1, i)].IsParamsParameter())
-                                      .Any();
+                return !parameterTypes
+                            .Where((t, i) => !ParameterMatchesType(parameters[Math.Min(parameters.Length - 1, i)], t))
+                            .Any();
             });
+        }
+
+        private static bool ParameterMatchesType(ParameterInfo parameter, Type type)
+        {
+            if (parameter.ParameterType == type)
+                return true;
+
+            if (parameter.IsParamsParameter() && parameter.ParameterType.GetElementType() == type)
+                return true;
+
+            return false;
         }
 
         private static bool IsParamsParameter(this ParameterInfo parameter)
