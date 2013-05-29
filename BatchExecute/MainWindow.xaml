@@ -1,7 +1,7 @@
 ﻿<Window x:Class="BatchExecute.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="BatchExecute" Height="450" Width="800" Closing="Window_Closing">
+        Title="BatchExecute" Height="500" Width="800" Closing="Window_Closing">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -80,7 +80,7 @@
 
         <StackPanel Grid.Column="1" Grid.Row="3">            
             <Label Content="Name" FontWeight="Bold" Padding="5,5,5,0"/>
-            <TextBox x:Name="tbProgramName" Margin="5" TextChanged="tbProgramName_TextChanged"/>
+            <TextBox x:Name="tbProgramName" Margin="5"  Text="{Binding CurrentProgram.Name}"/>
 
             <Label Content="Filename" FontWeight="Bold" Padding="5,0"/>
             <Grid>
@@ -89,12 +89,13 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <TextBox x:Name="tbProgramFilename" Grid.Column="0" Margin="5" TextChanged="tbProgramFilename_TextChanged"/>
+                <TextBox x:Name="tbProgramFilename" Grid.Column="0" Margin="5" Text="{Binding CurrentProgram.Filename}"/>
                 <Button x:Name="btnProgramFilenameBrowse" Grid.Column="1" Margin="5" Padding="3,0" Content="..." Click="btnProgramFilenameBrowse_Click"/>
             </Grid>
 
             <Label Content="Arguments" FontWeight="Bold" Padding="5,0"/>
-            <TextBox x:Name="tbProgramArguments" Margin="5" TextChanged="tbProgramArguments_TextChanged"/>
+            <TextBox x:Name="tbProgramArguments" Margin="5" Text="{Binding CurrentProgram.Arguments}"
+                     TextWrapping="WrapWithOverflow" Height="60"/>
         </StackPanel>
 
         <StackPanel Grid.Column="1" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">

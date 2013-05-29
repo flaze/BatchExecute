@@ -13,10 +13,6 @@ namespace BatchExecute
 {
     public partial class MainWindow : INotifyPropertyChanged
     {
-        private string[] _validExtensions;
-        private DProgram _currentProgram;
-        private readonly ExecuteThread _executeThread;
-
         public DProgram CurrentProgram
         {
             get { return _currentProgram; }
@@ -29,6 +25,10 @@ namespace BatchExecute
 
         public ObservableCollection<DFile> Files { get; set; }
         public ObservableCollection<DProgram> Programs { get; set; }
+
+        private string[] _validExtensions;
+        private DProgram _currentProgram;
+        private readonly ExecuteThread _executeThread;
 
         public MainWindow()
         {
@@ -223,27 +223,6 @@ namespace BatchExecute
             }
         }
 
-        private void tbProgramName_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (CurrentProgram == null) return;
-
-            CurrentProgram.Name = tbProgramName.Text;
-        }
-
-        private void tbProgramFilename_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (CurrentProgram == null) return;
-
-            CurrentProgram.Filename = tbProgramFilename.Text;
-        }
-
-        private void tbProgramArguments_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (CurrentProgram == null) return;
-
-            CurrentProgram.Arguments = tbProgramArguments.Text;
-        }
-
         #endregion
 
         private void Window_Closing(object sender, CancelEventArgs e)
@@ -296,7 +275,12 @@ namespace BatchExecute
 
         private void btnPreview_Click(object sender, RoutedEventArgs e)
         {
-            
+            var previewWindow = new PreviewWindow(this)
+            {
+                Owner = this
+            };
+
+            previewWindow.ShowDialog();
         }
 
         private void btnProgramFilenameBrowse_Click(object sender, RoutedEventArgs e)

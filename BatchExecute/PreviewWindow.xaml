@@ -1,0 +1,28 @@
+﻿<Window x:Class="BatchExecute.PreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BatchExecute - Preview" Height="400" Width="750" WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        
+        <TextBox Grid.Column="0" Grid.Row="0" Height="60" TextWrapping="WrapWithOverflow" Margin="10"
+                 x:Name="Arguments" Text="{Binding Path=CurrentProgram.Arguments}"
+                 TextChanged="Arguments_OnTextChanged"/>
+        
+        <ListView Grid.Column="0" Grid.Row="1" Margin="10,0,10,10" ItemsSource="{Binding Results}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Width="250" Header="Program" DisplayMemberBinding="{Binding Program}" />
+                    <GridViewColumn Width="450" Header="Arguments" DisplayMemberBinding="{Binding Arguments}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>
