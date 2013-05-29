@@ -51,6 +51,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="ArgumentFormatter.cs" />
+    <Compile Include="ArgumentFormatterException.cs" />
     <Compile Include="DFunctionResult.cs" />
     <Compile Include="DStep.cs" />
     <Compile Include="ExecuteThread.cs" />

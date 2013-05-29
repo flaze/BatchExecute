@@ -55,7 +55,17 @@ namespace BatchExecute
             for (var i = 0; i < _files.Count; i++)
             {
                 var file = _files[i];
-                var stepArguments = ArgumentFormatter.Format(_program.Arguments, file);
+                IEnumerable<string> stepArguments;
+
+                try
+                {
+                    stepArguments = ArgumentFormatter.Format(_program.Arguments, file);
+                }
+                catch (Exception ex)
+                {
+                    _main.UpdateState(i, "Error - " + ex.Message);
+                    continue;
+                }
 
                 foreach (var arguments in stepArguments)
                 {

@@ -59,7 +59,7 @@ namespace BatchExecute
                 .Select(r =>
                     {
                         if (r is Exception)
-                            return new PreviewItem {Arguments = "ERROR: " + ((Exception) r).Message};
+                            return new PreviewItem {Arguments = "Error - " + ((Exception) r).Message};
 
                         return new PreviewItem {Program = CurrentProgram.Filename, Arguments = (string)r};
                     })

@@ -44,12 +44,19 @@ namespace BatchExecute
 
         private static MethodInfo GetMethod(string name, object[] arguments)
         {
-            return typeof (ArgumentFormatter)
-                .FindMethod(name,
-                            BindingFlags.FlattenHierarchy | BindingFlags.Static |
-                            BindingFlags.Public,
-                            arguments.Select(a => a.GetType()).ToArray())
-                .First();
+            try
+            {
+                return typeof (ArgumentFormatter)
+                    .FindMethod(name,
+                                BindingFlags.FlattenHierarchy | BindingFlags.Static |
+                                BindingFlags.Public,
+                                arguments.Select(a => a.GetType()).ToArray())
+                    .First();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new ArgumentFormatterException("Unable to find function", ex);
+            }
         }
 
         #region Functions
