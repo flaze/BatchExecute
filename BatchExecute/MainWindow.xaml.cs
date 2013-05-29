@@ -1,8 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -10,21 +8,14 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace BatchExecute
 {
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : INotifyPropertyChanged
     {
         private string[] _validExtensions;
         private DProgram _currentProgram;
-        private ExecuteThread _executeThread;
+        private readonly ExecuteThread _executeThread;
 
         public DProgram CurrentProgram
         {
@@ -51,7 +42,7 @@ namespace BatchExecute
             DataContext = this;
             InitializeComponent();
 
-            loadSettings();
+            LoadSettings();
 
             if(Programs.Count > 0)
                 lvPrograms.SelectedIndex = 0;
@@ -59,9 +50,9 @@ namespace BatchExecute
 
         #region Settings
 
-        private void loadSettings()
+        private void LoadSettings()
         {
-            loadPrograms();
+            LoadPrograms();
             tbFileExtensions.Text = Properties.Settings.Default.Extensions;
 
             if (Properties.Settings.Default.WindowMode == "Hidden")
@@ -72,17 +63,17 @@ namespace BatchExecute
                 rbWindowNormal.IsChecked = true;
         }
 
-        private void saveSettings()
+        private void SaveSettings()
         {
-            savePrograms();
+            SavePrograms();
             Properties.Settings.Default.Extensions = tbFileExtensions.Text;
-            Properties.Settings.Default.WindowMode = getWindowMode();
+            Properties.Settings.Default.WindowMode = GetWindowMode();
 
             Properties.Settings.Default.Save();
             Debug.WriteLine("Saved");
         }
 
-        private void loadPrograms()
+        private void LoadPrograms()
         {
             string[] lines = Properties.Settings.Default.Programs.Replace("\r", "").Split('\n');
             foreach (var line in lines)
@@ -92,38 +83,38 @@ namespace BatchExecute
                     var part = line.Split('|');
                     if (part.Length == 3)
                     {
-                        Programs.Add(new DProgram(fromSafeString(part[0]), fromSafeString(part[1]), fromSafeString(part[2])));
+                        Programs.Add(new DProgram(FromSafeString(part[0]), FromSafeString(part[1]), FromSafeString(part[2])));
                     }
                 }
             }
         }
 
-        private void savePrograms()
+        private void SavePrograms()
         {
-            StringBuilder sb = new StringBuilder();
-            foreach (DProgram program in Programs)
+            var sb = new StringBuilder();
+            foreach (var program in Programs)
             {
-                sb.Append(toSafeString(program.Name) + "|" + toSafeString(program.Filename) + "|" + toSafeString(program.Arguments) + '\n');
+                sb.Append(ToSafeString(program.Name) + "|" + ToSafeString(program.Filename) + "|" + ToSafeString(program.Arguments) + '\n');
             }
             Properties.Settings.Default.Programs = sb.ToString();
         }
 
-        private string getWindowMode()
+        private string GetWindowMode()
         {
             if (rbWindowHidden.IsChecked == true)
                 return "Hidden";
-            else if (rbWindowMinimized.IsChecked == true)
+            if (rbWindowMinimized.IsChecked == true)
                 return "Minimized";
             
             return "Normal";
         }
 
-        private string toSafeString(string value)
+        private static string ToSafeString(string value)
         {
             return value.Replace("|", "\\|");
         }
 
-        private string fromSafeString(string value)
+        private static string FromSafeString(string value)
         {
             return value.Replace("\\|", "|");
         }
@@ -132,34 +123,34 @@ namespace BatchExecute
 
         #region Load Path
 
-        private void loadPath(string path)
+        private void LoadPath(string path)
         {
             _validExtensions = tbFileExtensions.Text.Split(' ');
 
             if ((File.GetAttributes(path) & FileAttributes.Directory) == FileAttributes.Directory)
             {
-                loadDirectory(new DirectoryInfo(path));
+                LoadDirectory(new DirectoryInfo(path));
             }
             else
             {
-                loadFile(new FileInfo(path));
+                LoadFile(new FileInfo(path));
             }
         }
 
-        private void loadDirectory(DirectoryInfo directory)
+        private void LoadDirectory(DirectoryInfo directory)
         {
             foreach (FileInfo file in directory.GetFiles())
             {
-                loadFile(file);
+                LoadFile(file);
             }
 
             foreach (DirectoryInfo dir in directory.GetDirectories())
             {
-                loadDirectory(dir);
+                LoadDirectory(dir);
             }
         }
 
-        private void loadFile(FileInfo file)
+        private void LoadFile(FileInfo file)
         {
             var fileExt = file.Extension.Substring(1);
             if (_validExtensions.Contains(fileExt))
@@ -176,18 +167,20 @@ namespace BatchExecute
 
         #region Event Handlers
 
+        #region lvFiles
+
         private void lvFiles_Drop(object sender, DragEventArgs e)
         {
             if(e.Data == null) return;
             
-            DataObject data = (DataObject)e.Data;
+            var data = (DataObject)e.Data;
             if(!data.ContainsFileDropList()) return;
 
             var files = data.GetFileDropList();
 
-            foreach (string path in files)
+            foreach (var path in files)
             {
-                loadPath(path);
+                LoadPath(path);
             }
 
             Debug.WriteLine("lvFiles_Drop");
@@ -207,34 +200,16 @@ namespace BatchExecute
             e.Handled = true;
         }
 
-        private void btnAddProgram_Click(object sender, RoutedEventArgs e)
-        {
-            var program = new DProgram();
-            Programs.Add(program);
-            lvPrograms.SelectedItem = program;
-        }
+        #endregion
 
-        private void btnRemoveProgram_Click(object sender, RoutedEventArgs e)
-        {
-            if (lvPrograms.SelectedIndex < 0 || lvPrograms.SelectedIndex >= Programs.Count)
-                return;
-
-            var program = Programs[lvPrograms.SelectedIndex];
-
-            if (MessageBox.Show(string.Format("Are you sure you want to remove \"{0}\"?", program.Name),
-                "Confirm Deletion",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes)
-            {
-                Programs.RemoveAt(lvPrograms.SelectedIndex);
-            }
-        }
+        #region Selection/Text Changed
 
         private void lvPrograms_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems.Count == 1)
             {
                 CurrentProgram = e.AddedItems[0] as DProgram;
+                if (CurrentProgram == null) return;
 
                 tbProgramName.Text = CurrentProgram.Name;
                 tbProgramFilename.Text = CurrentProgram.Filename;
@@ -269,16 +244,43 @@ namespace BatchExecute
             CurrentProgram.Arguments = tbProgramArguments.Text;
         }
 
+        #endregion
+
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            saveSettings();
+            SaveSettings();
+        }
+
+        #region Buttons
+
+        private void btnAddProgram_Click(object sender, RoutedEventArgs e)
+        {
+            var program = new DProgram();
+            Programs.Add(program);
+            lvPrograms.SelectedItem = program;
+        }
+
+        private void btnRemoveProgram_Click(object sender, RoutedEventArgs e)
+        {
+            if (lvPrograms.SelectedIndex < 0 || lvPrograms.SelectedIndex >= Programs.Count)
+                return;
+
+            var program = Programs[lvPrograms.SelectedIndex];
+
+            if (MessageBox.Show(string.Format("Are you sure you want to remove \"{0}\"?", program.Name),
+                "Confirm Deletion",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes)
+            {
+                Programs.RemoveAt(lvPrograms.SelectedIndex);
+            }
         }
 
         private void btnExecute_Click(object sender, RoutedEventArgs e)
         {
             CurrentProgram.IsRunning = true;
             lvFiles.IsEnabled = false;
-            _executeThread.Execute(Files, CurrentProgram, getWindowMode());
+            _executeThread.Execute(Files, CurrentProgram, GetWindowMode());
         }
 
         private void btnCancel_Click(object sender, RoutedEventArgs e)
@@ -291,6 +293,27 @@ namespace BatchExecute
                 _executeThread.Stop();
             }
         }
+
+        private void btnPreview_Click(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
+        private void btnProgramFilenameBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog {Multiselect = false};
+            if (dialog.ShowDialog() == true)
+            {
+                tbProgramFilename.Text = dialog.FileName;
+            }
+        }
+
+        private void btnClearFiles_Click(object sender, RoutedEventArgs e)
+        {
+            Files.Clear();
+        }
+
+        #endregion
 
         private void _executeThread_Complete()
         {
@@ -310,21 +333,6 @@ namespace BatchExecute
                     file.State = "Pending";
                 }
             }));
-        }
-
-        private void btnProgramFilenameBrowse_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Multiselect = false;
-            if (dialog.ShowDialog() == true)
-            {
-                tbProgramFilename.Text = dialog.FileName;
-            }
-        }
-
-        private void btnClearFiles_Click(object sender, RoutedEventArgs e)
-        {
-            Files.Clear();
         }
 
         #endregion

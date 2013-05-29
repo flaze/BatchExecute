@@ -98,6 +98,8 @@
         </StackPanel>
 
         <StackPanel Grid.Column="1" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="btnPreview" Content="Preview" IsEnabled="{Binding Path=CurrentProgram.Execute_Enabled, FallbackValue=False}"
+                    Margin="5" Padding="5" Click="btnPreview_Click"/>
             <Button x:Name="btnCancel" Content="Cancel" IsEnabled="{Binding Path=CurrentProgram.IsRunning, FallbackValue=False}" 
                     Margin="5" Padding="5" Click="btnCancel_Click"/>
             <Button x:Name="btnExecute" Content="{Binding Path=CurrentProgram.Execute_Text, FallbackValue='Execute'}"
