@@ -15,9 +15,18 @@ namespace BatchExecute
 {
     public static class StringInjectExtension
     {
-        public const string AttributeRegex = "{{({0})(?:}}|(?::(.[^}}]*)}}))";
-        public const string FunctionSignatureRegex = "{(?<name>.*?)\\((?<arguments>.*?)\\)}";
-        public const string FunctionArgumentsRegex = "(?:(?<number>\\d+)|(?:\\\"(?<string>[a-z0-9\\s]*)\\\")|(?<boolean>true|false))\\s?,?\\s?";
+        public const string AttributePattern = "{{({0})(?:}}|(?::(.[^}}]*)}}))";
+        public const string FunctionSignaturePattern = "{(?<name>.*?)\\((?<arguments>.*?)\\)}";
+        public const string FunctionArgumentsPattern = "(?:(?<number>\\d+)|(?:\\\"(?<string>[a-z0-9\\s]*)\\\")|(?<boolean>true|false))\\s?,?\\s?";
+
+        private static readonly Regex FunctionSignatureRegex;
+        private static readonly Regex FunctionArgumentsRegex;
+
+        static StringInjectExtension()
+        {
+            FunctionSignatureRegex = new Regex(FunctionSignaturePattern);
+            FunctionArgumentsRegex = new Regex(FunctionArgumentsPattern);
+        }
 
         /// <summary>
         /// Extension method that replaces keys in a string with the values of matching object properties.
@@ -73,7 +82,7 @@ namespace BatchExecute
             var result = formatString;
             //regex replacement of key with value, where the generic key format is:
             //Regex foo = new Regex("{(foo)(?:}|(?::(.[^}]*)}))");
-            var attributeRegex = new Regex(string.Format(AttributeRegex, key));  //for key = foo, matches {foo} and {foo:SomeFormat}
+            var attributeRegex = new Regex(string.Format(AttributePattern, key));  //for key = foo, matches {foo} and {foo:SomeFormat}
 
             //loop through matches, since each key may be used more than once (and with a different format string)
             foreach (Match m in attributeRegex.Matches(formatString))
@@ -96,51 +105,83 @@ namespace BatchExecute
 
         }
 
-        public static string[] InjectFunctions(this string formatString,
-                                               Func<string, object[], IEnumerable<string>> functionHandler)
+        /// <summary>
+        /// Extension method that replaces function signatures with the result from functionHandler.
+        /// </summary>
+        /// <param name="formatString">The format string, containing keys like {somefunction(5, 3)}.</param>
+        /// <param name="functionHandler">Function handler to get the result of the function.</param>
+        /// <returns>A version of the formatString string with function signatures replaced.</returns>
+        public static IEnumerable<string> InjectFunctions(this string formatString,
+            Func<string, object[], IEnumerable<string>> functionHandler)
         {
-            var results = new List<string>();
-            var functionSignatureRegex = new Regex(FunctionSignatureRegex);
-            var functionArgumentsRegex = new Regex(FunctionArgumentsRegex);
-            var functionSignatureMatches = functionSignatureRegex.Matches(formatString);
+            var functionSignatureMatches = FunctionSignatureRegex.Matches(formatString);
 
             if (functionSignatureMatches.Count == 0)
                 return new[] {formatString};
 
+            // Get the results for each function signature match
+            var functions = GetFunctionResults(functionSignatureMatches, functionHandler);
+
+            // Parse into steps and add repeating functions
+            var steps = ToStepFunctions(functions);
+            RepeatFill(steps);
+
+            // Actually replace the format string with step function results
+            return ApplySteps(formatString, steps);
+        }
+
+        #region InjectFunctions Helper Methods
+
+        private static List<List<DFunctionResult>> GetFunctionResults(IEnumerable functionMatches,
+            Func<string, object[], IEnumerable<string>> functionHandler)
+        {
             var functions = new List<List<DFunctionResult>>();
 
-            foreach (Match m in functionSignatureMatches)
+            foreach (Match m in functionMatches)
             {
                 if (!m.Success) continue;
-
                 var name = m.Groups["name"].Value;
+
+                // Parse arguments
                 var arguments = new List<object>();
 
-                foreach (var am in functionArgumentsRegex.Matches(m.Groups["arguments"].Value)
-                                                         .Cast<Match>().Where(am => am.Success))
+                var argumentMatches = FunctionArgumentsRegex
+                    .Matches(m.Groups["arguments"].Value)
+                    .Cast<Match>().Where(am => am.Success);
+
+                foreach (var argMatch in argumentMatches)
                 {
-                    if (am.Groups["number"].Success)
-                        arguments.Add(int.Parse(am.Groups["number"].Value));
+                    if (argMatch.Groups["number"].Success)
+                        arguments.Add(int.Parse(argMatch.Groups["number"].Value));
 
-                    else if (am.Groups["string"].Success)
-                        arguments.Add(am.Groups["string"].Value);
+                    else if (argMatch.Groups["string"].Success)
+                        arguments.Add(argMatch.Groups["string"].Value);
 
-                    else if (am.Groups["boolean"].Success)
-                        arguments.Add(bool.Parse(am.Groups["boolean"].Value.ToLower()));
+                    else if (argMatch.Groups["boolean"].Success)
+                        arguments.Add(bool.Parse(argMatch.Groups["boolean"].Value.ToLower()));
                 }
 
-                functions.Add(functionHandler(name, arguments.ToArray())
-                                  .Select(r => new DFunctionResult
-                                  {
-                                      Index = m.Index, // TODO: backwards compiler compatability
-                                      Length = m.Length,
-                                      Value = r
-                                  }).ToList());
+
+                // Get the function result via the functionHandler
+                var result = functionHandler(name, arguments.ToArray())
+                    .Select(r => new DFunctionResult
+                    {
+                        Index = m.Index,
+                        Length = m.Length,
+                        Value = r
+                    }).ToList();
+
+
+                functions.Add(result);
             }
 
+            return functions;
+        }
+
+        private static List<DFunctionResult[]> ToStepFunctions(IList<List<DFunctionResult>> functions)
+        {
             var steps = new List<DFunctionResult[]>();
 
-            // Fill steps with initial data
             for (var f = 0; f < functions.Count; f++)
             {
                 for (var s = 0; s < functions[f].Count; s++)
@@ -151,7 +192,11 @@ namespace BatchExecute
                 }
             }
 
-            // Add repeat data
+            return steps;
+        }
+
+        private static void RepeatFill(IList<DFunctionResult[]> steps)
+        {
             var repeatStepStart = -1;
             var functionStepLengths = new int[steps[0].Length];
 
@@ -175,27 +220,25 @@ namespace BatchExecute
                     }
                 }
             }
-
-            return (
-                       from step in steps
-                       let stepResult = new DStep {Offset = 0, Result = (string) formatString.Clone()}
-                       select step.Aggregate(
-                                             stepResult,
-                                             (current, fr) =>
-                                             {
-                                                 current.Result = current.Result.ReplaceAt(fr.Index - current.Offset,
-                                                                                           fr.Length, fr.Value);
-                                                 current.Offset += fr.Length - fr.Value.Length;
-                                                 return current;
-                                             })
-                   ).Select(s => s.Result).ToArray();
         }
 
-
-        private static string ReplaceAt(this string s, int index, int length, string value)
+        private static IEnumerable<string> ApplySteps(string formatString, IEnumerable<DFunctionResult[]> steps)
         {
-            return s.Substring(0, index) + value + s.Substring(index + length, s.Length - index - length);
+            return (
+                from step in steps
+                let stepResult = new DStep { Offset = 0, Result = (string)formatString.Clone() }
+                select step.Aggregate(stepResult, (current, fr) =>
+                {
+                    current.Result = current.Result.ReplaceAt(
+                        fr.Index - current.Offset, fr.Length, fr.Value);
+                    current.Offset += fr.Length - fr.Value.Length;
+
+                    return current;
+                })
+            ).Select(s => s.Result);
         }
+
+        #endregion
 
         /// <summary>
         /// Creates a HashTable based on current object state.
