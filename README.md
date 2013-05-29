@@ -1,5 +1,6 @@
 BatchExecute
 ============
+* [Arguments Functions](https://github.com/flaze/BatchExecute/wiki/Arguments-Functions)
 
 Download
 ------------
