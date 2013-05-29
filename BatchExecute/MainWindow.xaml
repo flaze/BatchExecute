@@ -94,18 +94,23 @@
             </Grid>
 
             <Label Content="Arguments" FontWeight="Bold" Padding="5,0"/>
-            <TextBox x:Name="tbProgramArguments" Margin="5" Text="{Binding CurrentProgram.Arguments}"
+            <TextBox x:Name="tbProgramArguments" Margin="5" Text="{Binding Path=CurrentProgram.Arguments, UpdateSourceTrigger=PropertyChanged}"
                      TextWrapping="WrapWithOverflow" Height="60"/>
         </StackPanel>
 
-        <StackPanel Grid.Column="1" Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="btnPreview" Content="Preview" IsEnabled="{Binding Path=CurrentProgram.Execute_Enabled, FallbackValue=False}"
-                    Margin="5" Padding="5" Click="btnPreview_Click"/>
-            <Button x:Name="btnCancel" Content="Cancel" IsEnabled="{Binding Path=CurrentProgram.IsRunning, FallbackValue=False}" 
-                    Margin="5" Padding="5" Click="btnCancel_Click"/>
-            <Button x:Name="btnExecute" Content="{Binding Path=CurrentProgram.Execute_Text, FallbackValue='Execute'}"
-                IsEnabled="{Binding Path=CurrentProgram.Execute_Enabled, FallbackValue=False}"
-                Margin="5" Padding="5" Click="btnExecute_Click"/>
-        </StackPanel>
+        <Grid Grid.Column="1" Grid.Row="4">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="btnPreview" Content="Preview" IsEnabled="{Binding Path=CurrentProgram.Execute_Enabled, FallbackValue=False}"
+                        Margin="5" Padding="5" Click="btnPreview_Click"/>
+            </StackPanel>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"> 
+                <Button x:Name="btnCancel" Content="Cancel" IsEnabled="{Binding Path=CurrentProgram.IsRunning, FallbackValue=False}" 
+                        Margin="5" Padding="5" Click="btnCancel_Click"/>
+                <Button x:Name="btnExecute" Content="{Binding Path=CurrentProgram.Execute_Text, FallbackValue='Execute'}"
+                    IsEnabled="{Binding Path=CurrentProgram.Execute_Enabled, FallbackValue=False}"
+                    Margin="5" Padding="5" Click="btnExecute_Click"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

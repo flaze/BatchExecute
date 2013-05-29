@@ -13,7 +13,7 @@ namespace BatchExecute
         private IList<DFile> _files;
         private DProgram _program;
 
-        private MainWindow _main;
+        private readonly MainWindow _main;
         private Thread _thread;
         private string _windowMode;
 
@@ -55,25 +55,15 @@ namespace BatchExecute
             for (var i = 0; i < _files.Count; i++)
             {
                 var file = _files[i];
-                var arguments = ArgumentFormatter.Format(_program.Arguments, file).First(); // TODO: Multiple arguments
+                var stepArguments = ArgumentFormatter.Format(_program.Arguments, file);
 
-                Debug.WriteLine("EXECUTE: " + _program.Filename + " " + arguments);
-
-                var startInfo = new ProcessStartInfo(_program.Filename, arguments);
-
-                if (_windowMode == "Hidden")
+                foreach (var arguments in stepArguments)
                 {
-                    startInfo.CreateNoWindow = true;
-                    startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                }
-                else if (_windowMode == "Minimized")
-                {
-                    startInfo.WindowStyle = ProcessWindowStyle.Minimized;
-                }
+                    Debug.WriteLine("EXECUTE: " + _program.Filename + " " + arguments);
 
-                var p = Process.Start(startInfo);
-
-                p.WaitForExit();
+                    var p = StartProgram(arguments);
+                    p.WaitForExit();
+                }
 
                 _main.UpdateState(i, "Done");
 
@@ -90,6 +80,23 @@ namespace BatchExecute
             IsRunning = false;
             if (Complete != null)
                 Complete();
+        }
+
+        private Process StartProgram(string arguments)
+        {
+            var startInfo = new ProcessStartInfo(_program.Filename, arguments);
+
+            if (_windowMode == "Hidden")
+            {
+                startInfo.CreateNoWindow = true;
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            }
+            else if (_windowMode == "Minimized")
+            {
+                startInfo.WindowStyle = ProcessWindowStyle.Minimized;
+            }
+
+            return Process.Start(startInfo);
         }
     }
 }

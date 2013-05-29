@@ -21,6 +21,7 @@ namespace BatchExecute
                 _name = value;
                 FirePropertyChanged("Name");
                 FirePropertyChanged("Execute_Text");
+                FirePropertyChanged("Execute_Enabled");
             }
         }
 
@@ -30,7 +31,7 @@ namespace BatchExecute
             set
             {
                 _filename = value;
-                FirePropertyChanged("FileName");
+                FirePropertyChanged("Filename");
                 FirePropertyChanged("Execute_Enabled");
             }
         }

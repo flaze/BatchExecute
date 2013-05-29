@@ -288,7 +288,7 @@ namespace BatchExecute
             var dialog = new OpenFileDialog {Multiselect = false};
             if (dialog.ShowDialog() == true)
             {
-                tbProgramFilename.Text = dialog.FileName;
+                CurrentProgram.Filename = dialog.FileName;
             }
         }
 
